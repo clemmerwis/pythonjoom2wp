@@ -45,10 +45,10 @@ def imageCheck(val):
 
 
 #Vars
-cat = sys.argv[1]
-#cat = 560
+# cat = sys.argv[1]
+cat = "154"
 data_folder = Path("C:/Users/clemmer/Desktop/migAssets")
-file_name = str(cat) + "Content.xlsx"
+file_name = cat + "Content.xlsx"
 file_to_open = data_folder / file_name
 save_as = str(cat) + "Content2.xlsx"
 save_path = data_folder / save_as
@@ -59,130 +59,20 @@ wb = openpyxl.load_workbook(file_to_open)
 ws = wb.active
 
 
-#get max row of excel sheet
+#get max row of excel sheet that contains data
 maxRow = None
 counter = 2  # start on row after header
 while (counter < (ws.max_row + 1)):
     currentA = "A" + str(counter)
     valA = ws[currentA].value
     if valA == None:
-        maxRow = int(counter)
+        maxRow = counter
         break
     counter = counter + 1
 
-if maxRow == None:
-    maxRow = ws.max_row + 1
+if (maxRow == None):
+    maxRow = counter - 1
+    
 print(maxRow)
 
-
-#format post_excerpt images urls/tags
-#loop through E and
-#   remove leading before first <P on excerpts
-#   remove everything between <img ... src="https:// ... .jpg|png"
-counter = 2 #start on row after header
-while ( counter < maxRow ):   
-    currentG = "G" + str(counter)
-    valG = ws[currentG].value
-    valG = str(valG)
-    currentE = "E" + str(counter)
-    valE = ws[currentE].value
-    valE = str(valE)
-  
-    if ( valG.find("VIDEO -") ) != -1:
-        #remove valF style tags
-        remove_portion = valE.split('<p')[0]
-        valE = valE.replace(remove_portion, "")
-
-        #wrap video links in a tags
-        remove_portion = "{youtube}"
-        valE = valE.replace(remove_portion, '<a href="')
-        remove_portion = "{/youtube}"
-        valE = valE.replace(remove_portion, '">')
-
-        ws[currentE].value = valE
-    else:
-        #remove everything until first 'p' tag
-        remove_portion = valG.split('<p')[0]
-        valG = valG.replace(remove_portion, "")
-
-        #replace img start on E
-        valG = imgStart(valG)
-
-        #replace img end on E
-        valG = imgEnd(valG)
-        ws[currentG].value = valG
-
-        #replace img start on F
-        valE = imgStart(valE)
-
-        #replace img end on F
-        valE = imgEnd(valE)
-        ws[currentE].value = valE
-
-    #concat the excerpt to the content
-    ws[currentG].value = str(valG) + str(valE)
-    
-    #check post_content for an image
-    valE = ws[currentE].value
-    image_check = imageCheck(valE)
-    if image_check == '':
-        currentA = "A" + str(counter)
-        valA = ws[currentA].value
-        image_hash = getHash(valA)
-        the_image = '<img src="https://www.thenewamerican.com/media/k2/items/src/' + image_hash + '.jpg">'
-        append_portion = valE.split('<p')[0]
-        valE = valE.replace( append_portion, (the_image), 1 )
-        ws[currentE].value = str(valE)
-
-    counter = counter + 1
-
-
-#Concat post_id to post_name
-counter = 2 #start on row after header
-while ( counter < maxRow ):   
-    currentA = "A" + str(counter)
-    valA = ws[currentA].value
-    currentK = "K" + str(counter)
-    valK = ws[currentK].value
-
-    concatVal = str(valA) + "-" + str(valK)
-    ws[currentK].value = concatVal
-
-    counter = counter + 1
-
-#Format metadescription
-#If K is blank, paste L
-counter = 2 #start on row after header
-while ( counter < maxRow ):
-    #seo_metadesc   
-    currentN = "N" + str(counter)
-    valN = ws[currentN].value
-
-    if valN == None:
-        #seo_title
-        currentP = "P" + str(counter)
-        valP = ws[currentP].value 
-        ws[currentN].value = valP
-
-    counter = counter + 1
-
-
-#remove all but first keyword from metakey
-counter = 2 #start on row after header
-while ( counter < maxRow ):   
-    currentO = "O" + str(counter)
-    valO = ws[currentO].value
-
-    # if valO != None:
-    #     firstkey = valO.split(',')[0]
-    #     ws[currentO].value = firstkey
-    # else:
-    #     ws[currentO].value = sys.argv[2]
-        #ws[currentN].value = "Asia"
-    
-    if valO == None:
-        ws[currentO].value = sys.argv[2]
-
-    counter = counter + 1
-
-wb.save(save_path)
+# wb.save(save_path)
