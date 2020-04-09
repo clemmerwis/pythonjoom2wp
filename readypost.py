@@ -58,18 +58,16 @@ def format_image(val):
 
 
 def format_modulepos(val):
-    check = ''
     mod_check_regex = re.compile(r'<p.*?{modulepos inner_text_ad}.*?p>')
-    mod_check_mo = mod_check_regex.search(val)
-    if mod_check_mo != None:
-        check = str(mod_check_mo.group())
-    if check != '':
-        val = val.replace(check, "")
+    mod_tuples = mod_check_regex.findall(val)
+    if mod_tuples != None:
+        for tup in mod_tuples:
+            val = val.replace(tup, "")
     return val
 
 
 def get_youtube_embeds(val):
-    embeds_regex = re.compile(r'(<p>\s\S?|.*){youtube}(.*){/youtube}(\s\S?|.*</p>)')
+    embeds_regex = re.compile(r'(<p>.*?){youtube}(.*?){/youtube}(.*?</p>)')
     embed_check = embeds_regex.findall(val)
     embeds = list()
     for tup in embed_check:
@@ -186,7 +184,7 @@ while ( counter < maxRow ):
     valE = set_current_cell("E", counter)
     valK = set_current_cell("K", counter)
 
-    # If Video is found
+    # if is a Video post
     if (valG.find("VIDEO -") ) != -1:
         # for now just keep track of video posts
         print(valA)
@@ -204,6 +202,7 @@ while ( counter < maxRow ):
         # create and insert iframe into post_excerpt
         iframe = create_video_iframe(videoID)
         valG = insert_before_first_p_tag(valG, iframe)
+    # else is a normal post
     else:
         # remove anything before first p tag
         valG = insert_before_first_p_tag(valG, "")
@@ -219,11 +218,6 @@ while ( counter < maxRow ):
 
             # add image url to column R
             ws["Q"+str(counter)].value = idsUrls_Dic[valA]
-
-            # insert image before first p tag
-            valG = insert_before_first_p_tag(valG, the_image_url)
-            # remove anything before first p tag
-            valG = insert_before_first_p_tag(valG, "")
         else:
             # format image in column G 
             ws["G"+str(counter)].value = format_image(valG)
@@ -240,21 +234,21 @@ while ( counter < maxRow ):
             # remove image from excerpt
             valG = valG.replace( imageCheck(valG), "", 1 )
             
-            #update post_content to excerpt + content
-            ws["E"+str(counter)].value = valG + valE
-            valE = set_current_cell("E", counter)
+    #update post_content to excerpt + content
+    ws["E"+str(counter)].value = valG + valE
+    valE = set_current_cell("E", counter)
 
-            # remove revive ads
-            valE = format_modulepos(valE)
-            # update post_content value 
-            ws["E"+str(counter)].value = valE
+    # remove revive ads
+    valE = format_modulepos(valE)
+    # update post_content value 
+    ws["E"+str(counter)].value = valE
 
-            # replace embed codes with youtube iframes
-            embeds = get_youtube_embeds(valE)
-            valE = replace_embeds(valE, embeds)
-            # update post_content value 
-            ws["E"+str(counter)].value = valE
-            
+    # replace embed codes with youtube iframes
+    embeds = get_youtube_embeds(valE)
+    valE = replace_embeds(valE, embeds)
+    # update post_content value 
+    ws["E"+str(counter)].value = valE
+        
     #concat id to post_name
     ws["K"+str(counter)].value = valA + '-' + valK
     counter += 1
