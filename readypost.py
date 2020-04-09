@@ -8,17 +8,10 @@ import hashlib
 import json
 from pathlib import Path
 
-# Manual Process:
-# Run users.php and add users(authors) to database
-# Pre-create categories in WordPress
-# Sort content.xlsx by category, copy and paste to {catname}Content.xlsx
-# Copy {catname}Content.xlsx to {catnum}Content.xlsx
-# From Terminal- run: readypost.py "catnum"
-
 # Script Process:
 # Open {catnum}Content.xlsx
-#   * If "Video" found in excerpt, write post_id to Dic
-#   * If find '<!--IMAGE.*-->' in excerpt, remove entirely (rotator images that don't exist)
+#   * If "Video" found in excerpt, write post_id to Dic - write to json file
+#   * If find <!--IMAGE.*--> in excerpt, remove entirely (rotator images that don't exist)
 #   * Regex imageCheck in excerpt, if found - format existing image_url || If no image found, get hash from post_id, create image_url 
 #   * Capture post_id and image_url in a dictionary - write to json file
 #   * Remove image_url from post_excerpt
@@ -28,30 +21,13 @@ from pathlib import Path
 #   * Remove "Video -" records from spreadsheet
 #   * Save content
 
-#   Summary: 
-#       1. Post content columns = excerpt + content (minus the img_url from the excerpt), Post name = catnum + post_name 
-#       2. Created Json file "{catnum}feats.json". File contains post_id's and img_url's (extracted from excerpt). Can use to dl image to WP, and then set image as featured
-#       3. Created Json file "{catnum}skipped.json". Records removed from {catnum}Content.xlsx 
-
-
-# From Terminal- run: posts.php "catnum"
-
-# Script Process:
-# Open {catnum}Content.xlsx
-# Row by row create strings formatted like MySQL statements for injecting posts into the database
-# Run MySQL statements in PHPmyAdmin to add posts to the website
-# Run json file on wordpress page to connect categories and featured images to posts 
-
-
-# Manual Process:
-# Article Count.xlsx add 1 to "completed" column
 
 
 
 # Check for 1 argument
-if sys.argv[1] == None:
-    print('"Script requires argument: "categoryNumber"')
-    sys.exit()
+# if sys.argv[1] == None:
+#     print('"Script requires argument: "categoryNumber"')
+#     sys.exit()
 
 
 def imgStart(val):
@@ -80,6 +56,35 @@ def format_image(val):
     val = imgEnd(val)
     return val
 
+
+def format_modulepos(val):
+    check = ''
+    mod_check_regex = re.compile(r'<p.*?{modulepos inner_text_ad}.*?p>')
+    mod_check_mo = mod_check_regex.search(val)
+    if mod_check_mo != None:
+        check = str(mod_check_mo.group())
+    if check != '':
+        val = val.replace(check, "")
+    return val
+
+
+def get_youtube_embeds(val):
+    embeds_regex = re.compile(r'(<p>\s\S?|.*){youtube}(.*){/youtube}(\s\S?|.*</p>)')
+    embed_check = embeds_regex.findall(val)
+    embeds = list()
+    for tup in embed_check:
+        embeds.append(tup[1])
+    return embeds
+
+def replace_embeds(val, embeds):
+    for embed in embeds:
+        yt_iframe = create_video_iframe(embed)
+        embed_regex_tags = re.compile(r'<p>.*?{youtube}.*{/youtube}.*?</p>')
+        embed_tuples = embed_regex_tags.findall(val)
+        for tup in embed_tuples:
+            if embed in tup:
+                val = val.replace(tup, yt_iframe)
+    return val
 
 def getHash(postid):
     the_hash = hashlib.md5(("Image" + str(postid)).encode('utf-8')).hexdigest()
@@ -133,13 +138,17 @@ def search_colA(searching_for):
 
 #Vars
 # change me
-cat = sys.argv[1]
+# cat = sys.argv[1]
+cat = "252"
+
+# files and folders
 jsondata_folder = Path("C:/Users/chris/Desktop/migAssets/json")
 data_folder = Path("C:/Users/chris/Desktop/migAssets")
 file_name = cat + "Content.xlsx"
 file_to_open = data_folder / file_name
 save_as = cat + "Content-formatted.xlsx"
 save_path = data_folder / save_as
+
 
 #Start
 #---------
@@ -171,7 +180,7 @@ while ( counter < maxRow ):
     # Get this row's values for: post_id, post_excerpt, and post_content, post_name
     valA = set_current_cell("A", counter)
     if valA == None:
-        print("empty: " + counter)
+        print("empty: " + str(counter))
         continue
     valG = set_current_cell("G", counter)
     valE = set_current_cell("E", counter)
@@ -231,14 +240,23 @@ while ( counter < maxRow ):
             # remove image from excerpt
             valG = valG.replace( imageCheck(valG), "", 1 )
             
-            #concat the excerpt to the content
+            #update post_content to excerpt + content
             ws["E"+str(counter)].value = valG + valE
             valE = set_current_cell("E", counter)
-            valE = valE.replace('<p>{modulepos inner_text_ad}</p>', "")
 
+            # remove revive ads
+            valE = format_modulepos(valE)
+            # update post_content value 
+            ws["E"+str(counter)].value = valE
 
-        #concat id to post_name
-        ws["K"+str(counter)].value = valA + '-' + valK
+            # replace embed codes with youtube iframes
+            embeds = get_youtube_embeds(valE)
+            valE = replace_embeds(valE, embeds)
+            # update post_content value 
+            ws["E"+str(counter)].value = valE
+            
+    #concat id to post_name
+    ws["K"+str(counter)].value = valA + '-' + valK
     counter += 1
 
 
