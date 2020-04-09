@@ -136,8 +136,7 @@ def search_colA(searching_for):
 
 #Vars
 # change me
-# cat = sys.argv[1]
-cat = "252"
+cat = sys.argv[1]
 
 # files and folders
 jsondata_folder = Path("C:/Users/chris/Desktop/migAssets/json")
