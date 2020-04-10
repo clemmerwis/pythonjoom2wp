@@ -58,31 +58,43 @@ def format_image(val):
 
 
 def format_modulepos(val):
-    mod_check_regex = re.compile(r'<p.*?{modulepos inner_text_ad}.*?p>')
+    mod_check_regex = re.compile(r'(<p>|<p.*?)({modulepos .*})(.*?p>)')
     mod_tuples = mod_check_regex.findall(val)
     if mod_tuples != None:
         for tup in mod_tuples:
-            val = val.replace(tup, "")
+          toFind1 = str(tup[0])
+          toFind2 = str(tup[1])
+          toFind3 = str(tup[2])
+          toFind = toFind1 + toFind2 + toFind3
+          val = val.replace(toFind, "")
     return val
-
 
 def get_youtube_embeds(val):
-    embeds_regex = re.compile(r'(<p>.*?){youtube}(.*?){/youtube}(.*?</p>)')
-    embed_check = embeds_regex.findall(val)
     embeds = list()
-    for tup in embed_check:
-        embeds.append(tup[1])
+    embeds_check_regex = re.compile(r'(<p>|<p.*?)?({youtube}(.*){/youtube})(.*?p>)?')
+    embeds_tuples = embeds_check_regex.findall(val)
+    if embeds_tuples != None:
+        for tup in embeds_tuples:
+          embed = str(tup[2])
+          embeds.append(embed)
     return embeds
 
-def replace_embeds(val, embeds):
-    for embed in embeds:
-        yt_iframe = create_video_iframe(embed)
-        embed_regex_tags = re.compile(r'<p>.*?{youtube}.*{/youtube}.*?</p>')
-        embed_tuples = embed_regex_tags.findall(val)
-        for tup in embed_tuples:
-            if embed in tup:
-                val = val.replace(tup, yt_iframe)
+def format_ytvideos(val):
+    embeds = get_youtube_embeds(val)
+    yt_check_regex = re.compile(r'(<p>|<p.*?)?({youtube}.*{/youtube})(.*?p>)?')
+    yt_tuples = yt_check_regex.findall(val)
+    if yt_tuples != None:
+        for tup in yt_tuples:
+            for embed in embeds:
+                if embed in str(tup[1]): 
+                    yt_iframe = create_video_iframe(embed)
+                    toFind1 = str(tup[0])
+                    toFind2 = str(tup[1])
+                    toFind3 = str(tup[2])
+                    toFind = toFind1 + toFind2 + toFind3
+                    val = val.replace(toFind, yt_iframe)
     return val
+
 
 def getHash(postid):
     the_hash = hashlib.md5(("Image" + str(postid)).encode('utf-8')).hexdigest()
@@ -136,7 +148,8 @@ def search_colA(searching_for):
 
 #Vars
 # change me
-cat = sys.argv[1]
+# cat = sys.argv[1]
+cat = "85"
 
 # files and folders
 jsondata_folder = Path("C:/Users/chris/Desktop/migAssets/json")
@@ -218,7 +231,7 @@ while ( counter < maxRow ):
             # add image url to column R
             ws["Q"+str(counter)].value = idsUrls_Dic[valA]
         else:
-            # format image in column G 
+            # format image in column G and update value
             ws["G"+str(counter)].value = format_image(valG)
             # Reattain g cell
             valG = set_current_cell("G", counter)
@@ -243,8 +256,7 @@ while ( counter < maxRow ):
     ws["E"+str(counter)].value = valE
 
     # replace embed codes with youtube iframes
-    embeds = get_youtube_embeds(valE)
-    valE = replace_embeds(valE, embeds)
+    valE = format_ytvideos(valE)
     # update post_content value 
     ws["E"+str(counter)].value = valE
         
