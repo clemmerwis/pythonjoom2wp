@@ -24,10 +24,10 @@ from pathlib import Path
 
 
 
-# Check for 1 argument
-# if sys.argv[1] == None:
-#     print('"Script requires argument: "categoryNumber"')
-#     sys.exit()
+# Check for 1 argument 
+if sys.argv[1] == None:
+    print('"Script requires argument: "categoryNumber"')
+    sys.exit()
 
 
 def imgStart(val):
@@ -69,6 +69,7 @@ def format_modulepos(val):
           val = val.replace(toFind, "")
     return val
 
+
 def get_youtube_embeds(val):
     embeds = list()
     embeds_check_regex = re.compile(r'(<p>|<p.*?)?({youtube}(.*){/youtube})(.*?p>)?')
@@ -78,6 +79,7 @@ def get_youtube_embeds(val):
           embed = str(tup[2])
           embeds.append(embed)
     return embeds
+
 
 def format_ytvideos(val):
     embeds = get_youtube_embeds(val)
@@ -110,6 +112,15 @@ def imageCheck(val):
     return check
 
 
+def highslide_format(val):
+    slide_check_regex = re.compile(r'<p.*?\"highslide\".*?>')
+    slide_check_mo = slide_check_regex.search(val)
+    if slide_check_mo != None:
+        toFind = slide_check_mo.group()
+        val = val.replace(toFind, "")
+    return val
+
+
 def get_image_url(val):
     image_tag = imageCheck(val)
     img_url_regex = re.compile(r'src="(.*(jpg|png))')
@@ -119,7 +130,7 @@ def get_image_url(val):
 
 
 def set_current_cell(letter, number):
-    currentCell = letter + str(counter)
+    currentCell = letter + str(number)
     valCell = ws[currentCell].value
     valCell = str(valCell)
     return valCell
@@ -135,6 +146,7 @@ def create_video_iframe(videoID):
     iframe = f'<iframe frameborder="0" allowfullscreen="allowfullscreen" src="https://www.youtube.com/embed/{videoID}?rel=0&amp;showinfo=0&amp;autoplay=0"></iframe>'
     return iframe
 
+
 def search_colA(searching_for):
     counter = 2  # start on row after header
     while (counter < (ws.max_row + 1)):
@@ -146,10 +158,11 @@ def search_colA(searching_for):
         counter = counter + 1
     return found_on_counter
 
+
 #Vars
 # change me
-# cat = sys.argv[1]
-cat = "85"
+cat = sys.argv[1]
+# cat = "248"
 
 # files and folders
 jsondata_folder = Path("C:/Users/chris/Desktop/migAssets/json")
@@ -218,6 +231,8 @@ while ( counter < maxRow ):
     else:
         # remove anything before first p tag
         valG = insert_before_first_p_tag(valG, "")
+        # format p class obscuring image on some & update value
+        valG = highslide_format(valG)
 
         # If no image, get image from ID and hash
         if imageCheck(valG) == '':
@@ -231,7 +246,7 @@ while ( counter < maxRow ):
             # add image url to column R
             ws["Q"+str(counter)].value = idsUrls_Dic[valA]
         else:
-            # format image in column G and update value
+            # format image in column G & update value
             ws["G"+str(counter)].value = format_image(valG)
             # Reattain g cell
             valG = set_current_cell("G", counter)
@@ -269,7 +284,7 @@ for key, value in idsSkipped_Dic.items():
     row_to_delete = search_colA(value)
     ws.delete_rows(row_to_delete)
 
-# Writing to 252Skipped.json 
+# Writing to Skipped.json 
 jsonified = json.dumps(idsSkipped_Dic, indent = 4)
 fname = cat + "skipped.json"
 json_file = jsondata_folder / fname
@@ -278,7 +293,7 @@ with open(json_file, "w+") as outfile:
     outfile.close() 
 print('created: ' + str(json_file))
 
-# Writing to 252Feats.json 
+# Writing to Feats.json 
 jsonified = json.dumps(idsUrls_Dic, indent = 4)
 fname = cat + "feats.json"
 json_file = jsondata_folder / fname
