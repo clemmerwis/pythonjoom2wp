@@ -159,8 +159,12 @@ class CurrentCell:
 
 #Vars
 # change me
-# cat = sys.argv[1]
-cat = "370"
+# Check for 1 argument 
+if sys.argv[1] == None:
+    print('"Script requires argument: "categoryNumber"')
+    sys.exit()
+cat = sys.argv[1]
+# cat = "370"
 
 # files and folders
 jsondata_folder = Path("C:/Users/chris/Desktop/migAssets/json")
@@ -191,7 +195,7 @@ while (counter < (ws.max_row + 2)):
 if (maxRow == None):
     maxRow = counter - 1
     
-print(maxRow)
+print("Max row: " + str(maxRow))
 
 idsUrls_Dic = {}
 idsSkipped_Dic = {}
@@ -270,9 +274,6 @@ while ( counter < maxRow ):
     currK_postname.update_sheet()
 
     counter += 1
-
-    if (counter > 10):
-        sys.exit()
         
 # After while loop, delete rows
 for key, value in idsSkipped_Dic.items():

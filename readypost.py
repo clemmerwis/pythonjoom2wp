@@ -22,8 +22,6 @@ from pathlib import Path
 #   * Save content
 
 
-
-
 # Check for 1 argument 
 if sys.argv[1] == None:
     print('"Script requires argument: "categoryNumber"')
