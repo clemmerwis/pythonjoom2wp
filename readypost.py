@@ -1,4 +1,6 @@
 #! python3
+from lxml import html, etree
+from pathlib import Path
 import time
 import os
 import sys
@@ -6,7 +8,7 @@ import openpyxl
 import re
 import hashlib
 import json
-from pathlib import Path
+import requests
 
 def search_colA(searching_for):
     counter = 2  # start on row after header
@@ -157,21 +159,25 @@ class CurrentCell:
 
 
 
-#Vars
+# Vars
 # change me
-# Check for 1 argument 
-if sys.argv[1] == None:
-    print('"Script requires argument: "categoryNumber"')
+# Check for 3 arguments 
+if sys.argv[3] == None:
+    print('"Script requires arguments: "catnum", "catname", "subtcat"')
     sys.exit()
-cat = sys.argv[1]
-# cat = "370"
+catnum = sys.argv[1]
+catname = sys.argv[2]
+subcat = sys.argv[3]
+# cat = "83"
+catdomain = catname + '/' + subcat + '/' + 'item/'
+joomla_domain = 'https://www.thenewamerican.com/' 
 
 # files and folders
 jsondata_folder = Path("C:/Users/chris/Desktop/migAssets/json")
 data_folder = Path("C:/Users/chris/Desktop/migAssets")
-file_name = cat + "Content.xlsx"
+file_name = catnum + "Content.xlsx"
 file_to_open = data_folder / file_name
-save_as = cat + "Content-formatted.xlsx"
+save_as = catnum + "Content-formatted.xlsx"
 save_path = data_folder / save_as
 
 
@@ -234,6 +240,30 @@ while ( counter < maxRow ):
             image_hash = getHash(currG_excerpt.get_value())
             the_image_url = 'https://www.thenewamerican.com/media/k2/items/src/' + image_hash + '.jpg'
 
+            # check if url exists
+            r = requests.get(the_image_url)
+            if r.status_code == 404:
+                webpageLink = joomla_domain + catdomain + currA_postid.get_value() +  '-' + currK_postname.get_value()
+                page = requests.get(webpageLink)
+
+                # convert the data received into searchable HTML
+                extractedHtml = html.fromstring(page.content)
+
+                # use an XPath query to find the image link (the 'src' attribute of the 'img' tag).
+                imageSrc = extractedHtml.xpath("//img/@src")
+                for src in imageSrc:
+                    jpeg_found = False
+                    if ".jpg" in src:
+                        jpeg_found = True
+                        src = src[1:]
+                        the_image_url = joomla_domain + src
+                        break
+                    if ".png" in src:
+                        jpeg_found = True
+                        src = src[1:]
+                        the_image_url = joomla_domain + src
+                        break
+            
             # add to Dictionary of ids and urls
             idsUrls_Dic.update( {currA_postid.get_value(): the_image_url} )
 
@@ -282,7 +312,7 @@ for key, value in idsSkipped_Dic.items():
 
 # Writing to Skipped.json 
 jsonified = json.dumps(idsSkipped_Dic, indent = 4)
-fname = cat + "skipped.json"
+fname = catnum + "skipped.json"
 json_file = jsondata_folder / fname
 with open(json_file, "w+") as outfile: 
     outfile.write(jsonified)
@@ -291,7 +321,7 @@ print('created: ' + str(json_file))
 
 # Writing to Feats.json 
 jsonified = json.dumps(idsUrls_Dic, indent = 4)
-fname = cat + "feats.json"
+fname = catnum + "feats.json"
 json_file = jsondata_folder / fname
 with open(json_file, "w+") as outfile: 
     outfile.write(jsonified) 
@@ -303,5 +333,5 @@ wb.save(save_path)
 print('created: ' + str(save_path))
 
 print("Finished")
-sys.exit()
+
     
